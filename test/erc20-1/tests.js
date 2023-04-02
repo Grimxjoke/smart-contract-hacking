@@ -28,18 +28,11 @@ describe('ERC20 Tokens Exercise 1', function () {
 
         // TODO: Minting
 
-        let mintingToMe = await contract.connect(deployer).mint(deployer.address, DEPLOYER_MINT);
-        await mintingToMe.wait();
+        await contract.connect(deployer).mint(deployer.address, DEPLOYER_MINT);
 
-
-        let mintingToUser1 = await contract.connect(deployer).mint(user1.address, USERS_MINT);
-        await mintingToUser1.wait();
-
-        let mintingToUser2 = await contract.connect(deployer).mint(user2.address, USERS_MINT);
-        await mintingToUser2.wait();
-
-        let mintingToUser3 = await contract.connect(deployer).mint(user3.address, USERS_MINT);
-        await mintingToUser3.wait();
+        await contract.connect(deployer).mint(user1.address, USERS_MINT);
+        await contract.connect(deployer).mint(user2.address, USERS_MINT);
+        await contract.connect(deployer).mint(user3.address, USERS_MINT);
 
 
 
@@ -54,36 +47,19 @@ describe('ERC20 Tokens Exercise 1', function () {
     it('Transfer tests', async function () {
         /** Transfers Tests */
 
-
         // TODO: First transfer
-
-        let firstTransfer = await contract.connect(user2).transfer(user3.address, FIRST_TRANSFER);
-        await firstTransfer.wait();
-
+        await contract.connect(user2).transfer(user3.address, FIRST_TRANSFER);
         expect(await contract.balanceOf(user3.address)).to.equal(parseEther("5100"))
 
-
         // TODO: Approval & Allowance test
-
-        let approvalFromUser3toUser1 = await contract.connect(user3).approve(user1.address, SECOND_TRANSFER);
-        await approvalFromUser3toUser1.wait();
-
+        await contract.connect(user3).approve(user1.address, SECOND_TRANSFER);
         expect(await contract.allowance(user3.address, user1.address)).to.equal(SECOND_TRANSFER)
 
-        console.log(`${formatEther(await contract.allowance(user3.address, user1.address))}`);
-
         // TODO: Second transfer
+        await contract.connect(user1).transferFrom(user3.address, user1.address, SECOND_TRANSFER)
 
-        let user3TransferFrom = await contract.connect(user1).transferFrom(user3.address, user1.address, SECOND_TRANSFER)
-
-        await user3TransferFrom.wait();
-
-        // // TODO: Checking balances after transfer
-
+        // TODO: Checking balances after transfer
         expect(await contract.balanceOf(user1.address)).to.equal(parseEther("6000"));
         expect(await contract.balanceOf(user3.address)).to.equal(parseEther("4100"));
-
-
-
     });
 });

@@ -1,9 +1,14 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { BigNumber } = require("ethers");
+const { parseEther } = require("ethers/lib/utils")
+const { formatEther } = require("ethers/lib/utils")
 
 describe('ERC20 Tokens Exercise 2', function () {
-  
+
   let deployer;
+  let contractDepository;
+
 
   const AAVE_ADDRESS = "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"
   const UNI_ADDRESS = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
@@ -60,15 +65,35 @@ describe('ERC20 Tokens Exercise 2', function () {
     console.log("AAVE Holder AAVE Balance: ", ethers.utils.formatUnits(this.initialAAVEBalance))
     console.log("UNI Holder UNI Balance: ", ethers.utils.formatUnits(this.initialUNIBalance))
     console.log("WETH Holder WETH Balance: ", ethers.utils.formatUnits(this.initialWETHBalance))
-  
+
   });
 
   it('Deploy depository and load receipt tokens', async function () {
     /** CODE YOUR SOLUTION HERE */
 
+
     // TODO: Deploy your depository contract with the supported assets
-    
-    // TODO: Load receipt tokens into objects under `this` (e.g this.rAve)
+    const contractDepositoryFactory = await ethers.getContractFactory("TokensDepository");
+    this.contractDepository = await contractDepositoryFactory.deploy(AAVE_ADDRESS, UNI_ADDRESS, WETH_ADDRESS);
+
+
+
+    // TODO: Load receipt tokens into objects under `this` (e.g this.rAave)
+
+    this.rAave = await ethers.getContractAt(
+      "rToken",
+      await this.contractDepository.receiptTokens(AAVE_ADDRESS)
+    )
+    this.rUni = await ethers.getContractAt(
+      "rToken",
+      await this.contractDepository.receiptTokens(UNI_ADDRESS)
+    )
+    this.rWeth = await ethers.getContractAt(
+      "rToken",
+      await this.contractDepository.receiptTokens(WETH_ADDRESS)
+    )
+
+
 
   });
 
@@ -76,30 +101,63 @@ describe('ERC20 Tokens Exercise 2', function () {
     /** CODE YOUR SOLUTION HERE */
 
     // TODO: Deposit Tokens
+    this.aave_amount = parseEther("15");
+    this.uni_amount = parseEther("5231");
+    this.weth_amount = parseEther("33");
+
     // 15 AAVE from AAVE Holder
-    
+    await this.aave.connect(this.aaveHolder).approve((this.contractDepository).address, this.aave_amount)
+    await this.contractDepository.connect(this.aaveHolder).deposit(AAVE_ADDRESS, this.aave_amount);
     // 5231 UNI from UNI Holder
-    
+    await this.uni.connect(this.uniHolder).approve((this.contractDepository).address, this.uni_amount)
+    await this.contractDepository.connect(this.uniHolder).deposit(UNI_ADDRESS, this.uni_amount);
+
     // 33 WETH from WETH Holder
-    
-    
+    await this.weth.connect(this.wethHolder).approve((this.contractDepository).address, this.weth_amount)
+    await this.contractDepository.connect(this.wethHolder).deposit(WETH_ADDRESS, this.weth_amount);
+
+
     // TODO: Check that the tokens were sucessfuly transfered to the depository
-    
+
+    expect(await this.rAave.balanceOf(AAVE_HOLDER)).to.equal(this.aave_amount);
+    expect(await this.rUni.balanceOf(UNI_HOLDER)).to.equal(this.uni_amount);
+    expect(await this.rWeth.balanceOf(WETH_HOLDER)).to.equal(this.weth_amount);
+
 
     // TODO: Check that the right amount of receipt tokens were minted
-    
-    
+
+    expect(await this.rAave.totalSupply()).to.equal(this.aave_amount)
+    expect(await this.rUni.totalSupply()).to.equal(this.uni_amount)
+    expect(await this.rWeth.totalSupply()).to.equal(this.weth_amount)
+
+
   });
 
   it('Withdraw tokens tests', async function () {
     /** CODE YOUR SOLUTION HERE */
 
     // TODO: Withdraw ALL the Tokens
-    
+    await this.contractDepository.connect(this.aaveHolder).withdraw(this.aave.address, this.aave_amount);
+    await this.contractDepository.connect(this.uniHolder).withdraw(this.uni.address, this.uni_amount);
+    await this.contractDepository.connect(this.wethHolder).withdraw(this.weth.address, this.weth_amount);
+
+
     // TODO: Check that the right amount of tokens were withdrawn (depositors got back the assets)
-    
+
+    expect(await this.aave.balanceOf(AAVE_HOLDER)).to.equal(this.initialAAVEBalance);
+    expect(await this.uni.balanceOf(UNI_HOLDER)).to.equal(this.initialUNIBalance);
+    expect(await this.weth.balanceOf(WETH_HOLDER)).to.equal(this.initialWETHBalance);
+    expect(await this.rAave.balanceOf(AAVE_HOLDER)).to.equal(BigNumber.from("0"));
+    expect(await this.rUni.balanceOf(UNI_HOLDER)).to.equal(BigNumber.from("0"));
+    expect(await this.rWeth.balanceOf(WETH_HOLDER)).to.equal(BigNumber.from("0"));
+
+
+
     // TODO: Check that the right amount of receipt tokens were burned
-    
+
+    expect(await this.rAave.totalSupply()).to.equal(BigNumber.from("0"));
+    expect(await this.rUni.totalSupply()).to.equal(BigNumber.from("0"));
+    expect(await this.rWeth.totalSupply()).to.equal(BigNumber.from("0"));
   });
 
 
