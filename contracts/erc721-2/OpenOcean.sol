@@ -1,42 +1,58 @@
-// SCH Course Copyright Policy (C): DO-NOT-SHARE-WITH-ANYONE
-// https://smartcontractshacking.com/#copyright-policy
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-/**
- * @title OpenOcean
- * @author JohnnyTime (https://smartcontractshacking.com)
- */
 contract OpenOcean {
+  // TODO: Complete this contract functionality
 
-    // TODO: Complete this contract functionality
+  // TODO: Constants
+  uint256 public maxPrice = 100 ether;
 
-    // TODO: Constants
+  // TODO: Item Struct
+  struct Item {
+    uint256 itemId;
+    address collection;
+    uint tokenId;
+    uint price;
+    address payable seller;
+    bool isSold;
+  }
 
-    // TODO: Item Struct
+  // TODO: State Variables and Mappings
+  uint public itemsCounter;
+  mapping(uint => Item) public listedItems;
 
-    // TODO: State Variables and Mappings
-    
-    constructor() {}
+  constructor() {}
 
-    // TODO: List item function
-    // 1. Make sure params are correct
-    // 2. Increment itemsCounter
-    // 3. Transfer token from sender to the contract
-    // 4. Add item to listedItems mapping
-    function listItem(address _collection, uint256 _tokenId, uint256 _price) external {
+  function listItem(
+    address _collection,
+    uint256 _tokenId,
+    uint256 _price
+  ) external {
+    itemsCounter++;
+    listedItems[itemsCounter].itemId = itemsCounter;
+    listedItems[itemsCounter].collection = _collection;
+    listedItems[itemsCounter].tokenId = _tokenId;
+    listedItems[itemsCounter].price = _price;
+    listedItems[itemsCounter].seller = payable(msg.sender);
 
-    }
+    IERC721(_collection).transferFrom(msg.sender, address(this), _tokenId);
+  }
 
-    // TODO: Purchase item function 
-    // 1. Check that item exists and not sold
-    // 2. Check that enough ETH was paid
-    // 3. Change item status to "sold"
-    // 4. Transfer NFT to buyer
-    // 5. Transfer ETH to seller
-    function purchase(uint _itemId) external payable {
-        
-    }
-    
+  function purchase(uint _itemId) external payable {
+    require(itemsCounter >= _itemId, "Item not Available");
+    require(!listedItems[_itemId].isSold, "Item has been sold");
+    require(msg.value >= listedItems[_itemId].price, "You didn't pay enought");
+    listedItems[_itemId].isSold = true;
+    (bool success, ) = (listedItems[_itemId].seller).call{ value: msg.value }(
+      ""
+    );
+    require(success, "Seller didn't get paid");
+
+    IERC721(listedItems[_itemId].collection).transferFrom(
+      address(this),
+      msg.sender,
+      listedItems[_itemId].tokenId
+    );
+  }
 }
