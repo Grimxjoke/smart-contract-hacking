@@ -23,7 +23,7 @@ contract Game {
   }
 }
 
-contract Hacker {
+contract Hacker_Game1 {
   //Define a Game Contract Instance
   Game game;
 
