@@ -1,9 +1,9 @@
 // SCH Course Copyright Policy (C): DO-NOT-SHARE-WITH-ANYONE
 // https://smartcontractshacking.com/#copyright-policy
 pragma solidity ^0.7.0;
+import "hardhat/console.sol";
 
 library SafeMath {
-
   function mul(uint256 a, uint256 b) internal pure returns (uint256) {
     if (a == 0) {
       return 0;
@@ -37,9 +37,8 @@ library SafeMath {
  * @author JohnnyTime (https://smartcontractshacking.com)
  */
 contract PumpMeToken {
-
   using SafeMath for uint;
-  
+
   mapping(address => uint) balances;
   uint public totalSupply;
   address public manager;
@@ -49,7 +48,7 @@ contract PumpMeToken {
     balances[msg.sender] = totalSupply = _initialSupply;
   }
 
-  modifier onlyManager {
+  modifier onlyManager() {
     require(msg.sender == manager, "only manager function!");
     _;
   }
@@ -66,18 +65,31 @@ contract PumpMeToken {
     return true;
   }
 
-  function batchTransfer(address[] memory _receivers, uint _value) external returns (bool) {
-    
+  function batchTransfer(
+    address[] memory _receivers,
+    uint _value
+  ) external returns (bool) {
     uint totalAmount = _receivers.length * _value;
-    require(_value > 0, "Value can't be 0" );
+    console.log("Total Amount is %s", totalAmount);
+    require(_value > 0, "Value can't be 0");
     require(balances[msg.sender] >= totalAmount, "Not enough tokens");
 
+    console.log("Before the sub()");
     balances[msg.sender].sub(totalAmount);
+    console.log("after the sub() and before the for() Loop");
 
-    for(uint i = 0; i < _receivers.length; i++) {
+    for (uint i = 0; i < _receivers.length; i++) {
+      console.log("%s Iteration of Loop before logic", i);
+
       balances[_receivers[i]] = balances[_receivers[i]].add(_value);
+      console.log(
+        "%s address Have balance of %s",
+        _receivers[i],
+        balances[_receivers[i]]
+      );
+      console.log("%s Iteration of Loop after logic", i);
     }
-    
+
     return true;
   }
 
