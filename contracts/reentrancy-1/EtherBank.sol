@@ -2,12 +2,13 @@
 // https://smartcontractshacking.com/#copyright-policy
 pragma solidity ^0.8.13;
 import "hardhat/console.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
  * @title EtherBank
  * @author JohnnyTime (https://smartcontractshacking.com)
  */
-contract EtherBank {
+contract EtherBank is ReentrancyGuard {
   mapping(address => uint256) public balances;
 
   function depositETH() public payable {
@@ -15,16 +16,15 @@ contract EtherBank {
     console.log("Deposit 1ETH");
   }
 
-  function withdrawETH() public {
+  function withdrawETH() public nonReentrant {
     uint256 balance = balances[msg.sender];
     console.log("Balance of %s is: %s", msg.sender, balance);
 
+    // Update Balance
+    balances[msg.sender] = 0;
     // Send ETH
     (bool success, ) = msg.sender.call{ value: balance }("");
     require(success, "Withdraw failed");
-
-    // Update Balance
-    balances[msg.sender] = 0;
   }
 }
 
