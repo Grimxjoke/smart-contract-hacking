@@ -5,6 +5,8 @@ pragma solidity ^0.8.13;
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
+import "hardhat/console.sol";
+
 contract CryptoEmpireGame is IERC1155Receiver {
 
     IERC1155 public immutable cryptoEmpireToken;
@@ -27,7 +29,7 @@ contract CryptoEmpireGame is IERC1155Receiver {
         cryptoEmpireToken = IERC1155(_cryptoEmpireToken);
     }
 
-    // List an item fro sale (AMOUNT / quantity is always 1)
+    // List an item for sale (AMOUNT / quantity is always 1)
     function listForSale(uint256 _nftId, uint256 _price) external {
 
         require(cryptoEmpireToken.balanceOf(msg.sender, _nftId) > 0, "You don't own this NFT");
@@ -35,11 +37,15 @@ contract CryptoEmpireGame is IERC1155Receiver {
 
         ++numberOfListings;
 
+        // @audit
         cryptoEmpireToken.safeTransferFrom(msg.sender, address(this), _nftId, AMOUNT, "");
+
+
         Listing storage listing = listings[numberOfListings];
         listing.seller = payable(msg.sender);
         listing.nftId = _nftId;
         listing.price = _price;
+
     }
 
     // Buy a listed item
@@ -47,16 +53,17 @@ contract CryptoEmpireGame is IERC1155Receiver {
 
         Listing storage listing = listings[_listingId];
 
-        require(listing.seller != address(0), "Listing doesn't exist wrong");
+        require(listing.seller != address(0), "Listing doesn't exist ");
         require(!listing.isSold, "Already sold");
         require(msg.value == listing.price, "Wrong price");
 
         listing.buyer = msg.sender;
         listing.isSold = true;
 
+        // @audit
         cryptoEmpireToken.safeTransferFrom(address(this), msg.sender, listing.nftId, AMOUNT, "");
 
-        (bool success, ) = listing.seller.call{value: msg.value}("");
+        (bool success, ) = listing.seller.call{value:   msg.value}("");
         require(success, "Failed to send Ether");
     }
 
@@ -66,16 +73,24 @@ contract CryptoEmpireGame is IERC1155Receiver {
         require(cryptoEmpireToken.balanceOf(msg.sender, _nftId) > 0, "You don't own this NFT");
         require(!stakedNfts[msg.sender][_nftId], "NFT with the same tokenID cannot be staked again");
         
+        // @audit 
         cryptoEmpireToken.safeTransferFrom(msg.sender, address(this), _nftId, AMOUNT, "");
+        
         stakedNfts[msg.sender][_nftId] = true;
     }
 
     // Unstake NFTs
+    
+    // Vulnerable Reentrancy Function
     function unstake(uint256 _nftId) external {
 
+        //CHECK 
         require(stakedNfts[msg.sender][_nftId], "You haven't staked this NFT");
 
+        //INTERACTION
         cryptoEmpireToken.safeTransferFrom(address(this), msg.sender, _nftId, AMOUNT, "");
+
+        // EFFECT
         stakedNfts[msg.sender][_nftId] = false;
     }
 
