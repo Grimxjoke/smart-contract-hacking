@@ -11,12 +11,12 @@ describe('Access Control Exercise 2', function () {
         /** SETUP EXERCISE - DON'T CHANGE ANYTHING HERE */
 
         [deployer, user1, attacker] = await ethers.getSigners();
-        
+
         const ToTheMoonFactory = await ethers.getContractFactory(
             'contracts/access-control-2/ToTheMoon.sol:ToTheMoon',
             deployer
         );
-        
+
         this.toTheMoon = await ToTheMoonFactory.deploy(INITIAL_MINT);
 
         await this.toTheMoon.mint(user1.address, USER_MINT)
@@ -24,16 +24,25 @@ describe('Access Control Exercise 2', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR SOLUTION HERE */
-        
+
+        const HackerFactory = await ethers.getContractFactory(
+            'contracts/access-control-2/ToTheMoon.sol:Hacker',
+            attacker
+        );
+
+        this.hacker = await HackerFactory.deploy(this.toTheMoon.address);
+        await this.hacker.attack();
+
+
     });
 
     after(async function () {
         /** SUCCESS CONDITIONS */
-        
+
         // Attacker has 1 million tokens
         expect(await this.toTheMoon.balanceOf(attacker.address)).to.be.gt((
             ethers.utils.parseEther("1000000")
         ));
-        
+
     });
 });

